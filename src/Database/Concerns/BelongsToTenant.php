@@ -18,8 +18,7 @@ trait BelongsToTenant
         static::addGlobalScope(new TenantScope());
 
         static::creating(function ($model): void {
-            $context = app(TenantContext::class);
-            $tenantId = $context->id();
+            $tenantId = app(TenantContext::class)->id();
 
             if ($tenantId === null) {
                 throw MissingTenantContextException::forModel($model::class);
@@ -28,6 +27,20 @@ trait BelongsToTenant
             $column = config('itmosoft-multitenancy.tenant_scope.column', 'tenant_id');
 
             // Never trust a caller-supplied tenant_id on tenant-owned records.
+            $model->setAttribute($column, $tenantId);
+        });
+
+        static::updating(function ($model): void {
+            $tenantId = app(TenantContext::class)->id();
+
+            if ($tenantId === null) {
+                throw MissingTenantContextException::forModel($model::class);
+            }
+
+            $column = config('itmosoft-multitenancy.tenant_scope.column', 'tenant_id');
+
+            // Prevent normal Eloquent model updates from transferring a row
+            // into another tenant by changing its tenant foreign key.
             $model->setAttribute($column, $tenantId);
         });
     }

@@ -20,21 +20,21 @@ class ResolveTenant
 
     public function handle(Request $request, Closure $next): Response
     {
-        $host = strtolower($request->getHost());
+        $host = strtolower(rtrim($request->getHost(), '.'));
         $excludedHosts = array_map(
-            static fn ($value) => strtolower((string) $value),
+            static fn ($value) => strtolower(rtrim((string) $value, '.')),
             config('itmosoft-multitenancy.middleware.excluded_hosts', [])
         );
 
         if (in_array($host, $excludedHosts, true)) {
-            return $next($request);
+            return $this->context->runWithoutTenant(fn () => $next($request));
         }
 
         $tenant = $this->resolver->resolve($request);
 
         if (! $tenant) {
             if (config('itmosoft-multitenancy.middleware.allow_unresolved', false)) {
-                return $next($request);
+                return $this->context->runWithoutTenant(fn () => $next($request));
             }
 
             abort((int) config('itmosoft-multitenancy.tenant.not_found_status', 404));

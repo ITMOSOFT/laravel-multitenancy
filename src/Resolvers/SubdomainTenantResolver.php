@@ -12,13 +12,13 @@ class SubdomainTenantResolver implements TenantResolver
 {
     public function resolve(Request $request): ?Tenant
     {
-        $baseDomain = strtolower((string) config('itmosoft-multitenancy.subdomains.base_domain'));
+        $baseDomain = strtolower(rtrim((string) config('itmosoft-multitenancy.subdomains.base_domain'), '.'));
 
         if ($baseDomain === '') {
             return null;
         }
 
-        $host = strtolower($request->getHost());
+        $host = strtolower(rtrim($request->getHost(), '.'));
         $suffix = '.'.$baseDomain;
 
         if (! str_ends_with($host, $suffix)) {
@@ -32,7 +32,10 @@ class SubdomainTenantResolver implements TenantResolver
             return null;
         }
 
-        $reserved = config('itmosoft-multitenancy.subdomains.reserved', []);
+        $reserved = array_map(
+            static fn ($value) => strtolower((string) $value),
+            config('itmosoft-multitenancy.subdomains.reserved', [])
+        );
 
         if (in_array($subdomain, $reserved, true)) {
             return null;

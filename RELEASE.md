@@ -14,54 +14,54 @@ composer install
 composer test
 ```
 
-## Publish repository
+Run the full GitHub Actions matrix before releasing:
+- PHP 8.3 / Laravel 12
+- PHP 8.4 / Laravel 12
+- PHP 8.3 / Laravel 13
+- PHP 8.4 / Laravel 13
 
-Create the GitHub repository manually, then run:
+## Recommended patch release
+
+The reviewed repository baseline is v1.0.0. If this patch is merged and all tests pass, use v1.0.1.
+
+Suggested local Git commands (run these yourself after reviewing the diff):
 
 ```bash
-git init
-git branch -M main
+git status
+git diff
 git add .
-git commit -m "chore: initial Laravel multitenancy package"
-git remote add origin https://github.com/ITMOSOFT/laravel-multitenancy.git
-git push -u origin main
-```
+git commit -m "fix: harden tenant context and isolation"
+git push origin main
 
-## Release
-
-Only after local PHPUnit and all GitHub Actions jobs pass:
-
-```bash
-git tag -a v1.0.0 -m "Release v1.0.0"
-git push origin v1.0.0
+git tag -a v1.0.1 -m "Release v1.0.1"
+git push origin v1.0.1
 ```
 
 GitHub Release title:
 
-`v1.0.0 - Initial Release`
+`v1.0.1 — Tenant Context and Isolation Hardening`
 
 Release description:
 
 ```markdown
-## Initial release
+## Fixes
+- Resolve queue tenant context through the configured tenant model.
+- Require active tenants for tenant-aware queue jobs.
+- Keep tenant queries fail-closed when context is absent.
+- Prevent ordinary Eloquent model updates from changing tenant ownership.
+- Clear tenant context during excluded and unresolved host requests.
+- Normalize host/subdomain comparisons.
+- Reject control characters in tenant storage paths and empty cache keys.
 
-- Domain and subdomain tenant resolution.
-- Scoped tenant request context with safe restoration.
-- Shared-database Eloquent tenant scope and automatic tenant assignment.
-- Tenant-aware queue middleware contract.
-- Tenant cache-key and storage-path namespace helpers.
-- Configurable tenant table and migration.
-- Laravel 12 and 13 compatibility.
-
-### Important scope
-
-This release provides shared-database tenancy primitives. Database-per-tenant connection switching and tenant database provisioning are not included.
+## Tests
+- Expanded coverage for queue middleware, custom tenant models, tenant reassignment, request context restoration, and path validation.
+- CI matrix: PHP 8.3/8.4 with Laravel 12/13.
 ```
 
 ## Packagist
 
-Submit `https://github.com/ITMOSOFT/laravel-multitenancy` at https://packagist.org/packages/submit, then enable the GitHub webhook/update integration.
+After publishing the GitHub tag, confirm Packagist detects v1.0.1. Do not publish until local PHPUnit and all four GitHub Actions jobs pass.
 
 ## Repository hygiene
 
-Do not commit `vendor/`, `.phpunit.cache/`, `.phpunit.result.cache`, `.env`, or other local artifacts. The `.gitignore` in this package excludes them.
+Do not commit `vendor/`, `.phpunit.cache/`, `.phpunit.result.cache`, `.env`, or other local artifacts.

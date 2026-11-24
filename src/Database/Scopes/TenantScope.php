@@ -22,6 +22,10 @@ class TenantScope implements Scope
                 throw MissingTenantContextException::forModel($model::class);
             }
 
+            // Disabling the exception must never turn a tenant-owned query into
+            // an unscoped query. No context means no visible tenant rows.
+            $builder->whereRaw('1 = 0');
+
             return;
         }
 

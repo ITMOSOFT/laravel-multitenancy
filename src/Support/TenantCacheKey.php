@@ -22,8 +22,14 @@ class TenantCacheKey
             throw new InvalidArgumentException('Cannot create a tenant cache key without a tenant context.');
         }
 
+        $key = ltrim($key, '.');
+
+        if ($key === '') {
+            throw new InvalidArgumentException('A tenant cache key cannot be empty.');
+        }
+
         $prefix = trim((string) config('itmosoft-multitenancy.cache.prefix', 'tenant'), '.');
 
-        return $prefix.'.'.$tenantId.'.'.ltrim($key, '.');
+        return $prefix.'.'.$tenantId.'.'.$key;
     }
 }

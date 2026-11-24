@@ -13,10 +13,11 @@ class DomainTenantResolver implements TenantResolver
     public function resolve(Request $request): ?Tenant
     {
         $model = config('itmosoft-multitenancy.tenant.model', Tenant::class);
+        $host = strtolower(rtrim($request->getHost(), '.'));
 
         /** @var Tenant|null $tenant */
         $tenant = $model::query()
-            ->where('domain', strtolower($request->getHost()))
+            ->where('domain', $host)
             ->where('status', 'active')
             ->first();
 

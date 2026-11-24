@@ -22,8 +22,15 @@ class TenantStoragePath
             throw new InvalidArgumentException('Cannot create a tenant storage path without a tenant context.');
         }
 
+        if (preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            throw new InvalidArgumentException('Tenant storage paths cannot contain control characters.');
+        }
+
         $clean = str_replace('\\', '/', trim($path));
-        $segments = array_filter(explode('/', $clean), static fn ($segment) => $segment !== '' && $segment !== '.');
+        $segments = array_filter(
+            explode('/', $clean),
+            static fn ($segment) => $segment !== '' && $segment !== '.'
+        );
 
         if (in_array('..', $segments, true)) {
             throw new InvalidArgumentException('Tenant storage paths cannot traverse parent directories.');

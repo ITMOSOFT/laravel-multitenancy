@@ -47,6 +47,4 @@ abstract class TestCase extends Orchestra
         $app['config']->set('itmosoft-multitenancy.table_prefix', 'itmosoft_');
         $app['config']->set('itmosoft-multitenancy.tenant.table', 'tenants');
     }
-
 }
-

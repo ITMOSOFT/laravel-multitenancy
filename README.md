@@ -31,7 +31,7 @@ $tenant = Tenant::query()->create([
 ]);
 ```
 
-Tenant statuses are application-managed strings. Only `active` tenants are returned by the built-in resolvers.
+Tenant statuses are application-managed strings. Only `active` tenants are returned by the built-in request resolvers and queue middleware.
 
 ## Resolve tenants
 
@@ -61,7 +61,7 @@ For subdomains such as `acme.example.com`, configure:
 
 The subdomain resolver expects one tenant label immediately before the configured base domain and looks up that label against `tenants.slug`.
 
-Unresolved hosts return HTTP 404 by default. Add central domains to `middleware.excluded_hosts`, or set `allow_unresolved` only when the surrounding application deliberately handles central domains itself.
+Unresolved hosts return HTTP 404 by default. Add central domains to `middleware.excluded_hosts`, or set `allow_unresolved` only when the surrounding application deliberately handles central domains itself. Excluded and allowed-unresolved requests execute with no active tenant context.
 
 ## Access the current tenant
 
@@ -99,12 +99,18 @@ class Project extends Model
 ```
 
 The trait:
-- Automatically assigns `tenant_id` on create.
+- Automatically assigns `tenant_id` on create, overriding any caller-supplied tenant ID.
 - Applies a global scope to reads, updates and deletes.
 - Fails closed when a tenant context is missing by default.
+- If `tenant_scope.require_context` is false, missing context returns zero rows rather than an unscoped result.
+- Prevents ordinary Eloquent model updates from changing the tenant foreign key.
 - Provides `tenant()` and `withoutTenantScope()`.
 
-For carefully controlled cross-tenant maintenance work, use `withoutTenantScope()` inside an explicitly authorized system operation. Never expose unscoped queries to tenant-facing requests.
+For carefully controlled cross-tenant maintenance work, use `withoutTenantScope()` inside an explicitly authorized system operation. Never expose unscoped queries to tenant-facing requests. Avoid mass-updating the tenant foreign key; Eloquent mass updates do not fire per-model events.
+
+## Custom tenant model
+
+Set `tenant.model` to a class extending the package `Tenant` model. Domain/subdomain resolution, tenant relationships, and queue context loading use this configured model.
 
 ## Cache and storage namespacing
 
@@ -116,7 +122,7 @@ $path = app(\ItmoSoft\Multitenancy\Support\TenantStoragePath::class)
     ->make('uploads/logo.png');
 ```
 
-These helpers generate tenant-specific names/paths. They do not automatically change Laravel's cache store, filesystem disk, or authorization policies.
+These helpers generate tenant-specific names/paths. Storage paths reject parent traversal and control characters. They do not automatically change Laravel's cache store, filesystem disk, or authorization policies.
 
 ## Queue jobs
 
@@ -142,12 +148,12 @@ class RebuildTenantReport implements TenantAwareJob
 
     public function handle(): void
     {
-        // TenantContext is active for this job.
+        // Tenant context is active for this job.
     }
 }
 ```
 
-The middleware reloads the tenant by ID and restores the prior context after execution.
+The middleware reloads the tenant by ID using the configured tenant model, requires the tenant to be active, and restores the prior context after execution.
 
 ## Configuration
 
@@ -156,15 +162,15 @@ The middleware reloads the tenant by ID and restores the prior context after exe
 - `tenant.model`: optional tenant model class extending the package `Tenant` model.
 - `resolver`: resolver class implementing `TenantResolver`.
 - `subdomains.base_domain`: base domain for subdomain resolution.
-- `middleware.excluded_hosts`: hosts that bypass resolution.
-- `middleware.allow_unresolved`: allow unresolved requests to continue (default false).
+- `middleware.excluded_hosts`: hosts that bypass resolution without inheriting an active tenant context.
+- `middleware.allow_unresolved`: allow unresolved requests to continue without tenant context (default false).
 - `tenant_scope.column`: tenant foreign-key column (default `tenant_id`).
-- `tenant_scope.require_context`: throw when a scoped model is queried without context (default true).
+- `tenant_scope.require_context`: throw when a scoped model is queried without context (default true); false returns no rows.
 - `cache.prefix` and `storage.prefix`: helper namespaces.
 
 ## Security and architecture boundaries
 
-**v1.0.0 implements shared-database, row-scoped tenancy primitives.** It does not implement database-per-tenant connection switching, tenant database provisioning, tenant migrations, central-domain routing, tenant signup/billing, admin UI, KYC, or authorization policies.
+This package implements shared-database, row-scoped tenancy primitives. It does not implement database-per-tenant connection switching, tenant database provisioning, tenant migrations, central-domain routing, tenant signup/billing, admin UI, KYC, or authorization policies.
 
 - Tenant isolation is only applied to models that explicitly use `BelongsToTenant`.
 - Add the tenant key and appropriate indexes/constraints to every tenant-owned table.
@@ -175,6 +181,7 @@ The middleware reloads the tenant by ID and restores the prior context after exe
 - The queue middleware must be attached to every tenant-aware job that needs tenant context.
 - Test isolation on the production database engine. SQLite tests do not prove production row-locking or database behavior.
 - Cross-tenant administrative operations must be explicit, authorized, logged and reviewed.
+- Do not use unscoped operations or mass tenant-key updates in tenant-facing code.
 
 ## Tests
 

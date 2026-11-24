@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItmoSoft\Multitenancy\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tenant extends Model
 {

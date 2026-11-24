@@ -13,15 +13,6 @@ return [
         'not_found_status' => 404,
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Tenant resolver
-    |--------------------------------------------------------------------------
-    |
-    | Use DomainTenantResolver for exact host-to-tenant mapping or
-    | SubdomainTenantResolver for {tenant}.example.com mapping.
-    |
-    */
     'resolver' => DomainTenantResolver::class,
 
     'subdomains' => [

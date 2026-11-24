@@ -50,4 +50,19 @@ class TenantContext
             $this->tenant = $previous;
         }
     }
+
+    /**
+     * Run a callback without tenant context and always restore the previous context.
+     */
+    public function runWithoutTenant(Closure $callback): mixed
+    {
+        $previous = $this->tenant;
+        $this->tenant = null;
+
+        try {
+            return $callback();
+        } finally {
+            $this->tenant = $previous;
+        }
+    }
 }
